@@ -464,7 +464,7 @@ void kinc_g4_pipeline_compile(kinc_g4_pipeline *state) {
 		used[state->vertex_shader->impl.attributes[i].index] = true;
 	}
 	stringCacheIndex = 0;
-	D3D11_INPUT_ELEMENT_DESC *vertexDesc = (D3D11_INPUT_ELEMENT_DESC *)alloca(sizeof(D3D11_INPUT_ELEMENT_DESC) * all);
+	D3D11_INPUT_ELEMENT_DESC *vertexDesc = (D3D11_INPUT_ELEMENT_DESC *)_malloca(sizeof(D3D11_INPUT_ELEMENT_DESC) * all);
 	int i = 0;
 	for (int stream = 0; state->input_layout[stream] != nullptr; ++stream) {
 		for (int index = 0; index < state->input_layout[stream]->size; ++index) {
