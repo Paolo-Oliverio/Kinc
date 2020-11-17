@@ -10,5 +10,5 @@
 	shallow = true
 [submodule "Tools/kincmake"]
 	path = Tools/kincmake
-	url = https://github.com/Kode/kincmake.git
+	url = https://github.com/Paolo-Oliverio/kincmake.git
 	branch = master
