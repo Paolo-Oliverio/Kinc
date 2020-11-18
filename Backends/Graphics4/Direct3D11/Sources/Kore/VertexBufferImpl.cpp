@@ -8,6 +8,7 @@
 
 void kinc_g4_vertex_buffer_init(kinc_g4_vertex_buffer_t *buffer, int count, kinc_g4_vertex_structure_t *structure, kinc_g4_usage_t usage,
                                 int instance_data_step_rate) {
+	buffer->impl.lockStart = 0;
 	buffer->impl.count = count;
 	buffer->impl.stride = 0;
 	for (int i = 0; i < structure->size; ++i) {
@@ -39,7 +40,12 @@ void kinc_g4_vertex_buffer_init(kinc_g4_vertex_buffer_t *buffer, int count, kinc
 		}
 	}
 
-	buffer->impl.vertices = new float[buffer->impl.stride / 4 * count];
+	if (buffer->impl.usage == KINC_G4_USAGE_READABLE) {
+		buffer->impl.vertices = (float*)malloc(buffer->impl.stride * count);
+	} else {
+		buffer->impl.vertices = nullptr;
+	}
+
 	D3D11_BUFFER_DESC bufferDesc;
 	bufferDesc.CPUAccessFlags = 0;
 
@@ -67,7 +73,9 @@ void kinc_g4_vertex_buffer_init(kinc_g4_vertex_buffer_t *buffer, int count, kinc
 
 void kinc_g4_vertex_buffer_destroy(kinc_g4_vertex_buffer_t *buffer) {
 	buffer->impl.vb->Release();
-	delete[] buffer->impl.vertices;
+	if (buffer->impl.usage == KINC_G4_USAGE_READABLE) {
+		free(buffer->impl.vertices);
+	}
 }
 
 float *kinc_g4_vertex_buffer_lock_all(kinc_g4_vertex_buffer_t *buffer) {
@@ -75,8 +83,30 @@ float *kinc_g4_vertex_buffer_lock_all(kinc_g4_vertex_buffer_t *buffer) {
 }
 
 float *kinc_g4_vertex_buffer_lock(kinc_g4_vertex_buffer_t *buffer, int start, int count) {
-	buffer->impl.lockStart = start;
-	buffer->impl.lockCount = count;
+	switch (buffer->impl.usage) { 
+		case KINC_G4_USAGE_STATIC : 
+			buffer->impl.lockStart = start;
+		    buffer->impl.lockCount = count;
+		    D3D11_MAPPED_SUBRESOURCE mappedResource;
+		    ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+		    context->Map(buffer->impl.vb, 0, D3D11_MAP_WRITE, 0, &mappedResource);
+		    buffer->impl.vertices = (float *)(mappedResource.pData);
+			break;
+	    case KINC_G4_USAGE_DYNAMIC :
+			if (buffer->impl.lockStart == 0) {
+				D3D11_MAPPED_SUBRESOURCE mappedResource;
+				ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+				context->Map(buffer->impl.vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+				//lockstart at 1 equals initialized.
+				buffer->impl.lockStart = 1;
+				buffer->impl.vertices = (float *)(mappedResource.pData);
+			}
+		    break;
+	    case KINC_G4_USAGE_READABLE :
+		    buffer->impl.lockStart = start;
+		    buffer->impl.lockCount = count;
+		    break;
+	}
 	return &buffer->impl.vertices[start * buffer->impl.stride / 4];
 }
 
@@ -85,17 +115,27 @@ void kinc_g4_vertex_buffer_unlock_all(kinc_g4_vertex_buffer_t *buffer) {
 }
 
 void kinc_g4_vertex_buffer_unlock(kinc_g4_vertex_buffer_t *buffer, int count) {
-	if (buffer->impl.usage == KINC_G4_USAGE_DYNAMIC) {
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-		context->Map(buffer->impl.vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		float *data = (float *)mappedResource.pData;
-		memcpy(&data[buffer->impl.lockStart * buffer->impl.stride / 4], &buffer->impl.vertices[buffer->impl.lockStart * buffer->impl.stride / 4],
-		       (count * buffer->impl.stride / 4) * sizeof(float));
-		context->Unmap(buffer->impl.vb, 0);
-	}
-	else {
-		context->UpdateSubresource(buffer->impl.vb, 0, nullptr, buffer->impl.vertices, 0, 0);
+	switch (buffer->impl.usage) {
+		case KINC_G4_USAGE_STATIC:
+			context->Unmap(buffer->impl.vb, 0);
+			buffer->impl.vertices = nullptr;
+			break;
+		case KINC_G4_USAGE_DYNAMIC:
+			context->Unmap(buffer->impl.vb, 0);
+			buffer->impl.lockStart = 0;
+			buffer->impl.vertices = nullptr;
+			break;
+		case KINC_G4_USAGE_READABLE:
+			context->UpdateSubresource(buffer->impl.vb, 0, nullptr, buffer->impl.vertices, 0, 0);//TODO check commented implementation(untested) as this copyes everything.
+			/*D3D11_BOX box{};
+		    box.left = buffer->impl.lockStart * buffer->impl.stride;
+		    box.right = buffer->impl.lockCount * buffer->impl.stride;
+		    box.top = 0;
+		    box.bottom = 1;
+		    box.front = 0;
+		    box.back = 1;
+		    context->UpdateSubresource(buffer->impl.vb, 0, &box , &buffer->impl.vertices[buffer->impl.lockStart * buffer->impl.stride / 4], 0, 0);*/
+			break;
 	}
 }
 
