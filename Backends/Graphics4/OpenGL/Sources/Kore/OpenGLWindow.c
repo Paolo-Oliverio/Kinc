@@ -75,18 +75,20 @@ void Kinc_Internal_initWindowsGLContext(int window, int depthBufferBits, int ste
 	}
 
 	if (wglewIsSupported("WGL_ARB_create_context") == 1) {
-		int attributes[] = {WGL_CONTEXT_MAJOR_VERSION_ARB,
-		                    4,
-		                    WGL_CONTEXT_MINOR_VERSION_ARB,
-		                    2,
-		                    WGL_CONTEXT_FLAGS_ARB,
-		                    WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-		                    WGL_CONTEXT_PROFILE_MASK_ARB,
-		                    WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-		                    0};
+		int attributes[] = {
+			WGL_CONTEXT_MAJOR_VERSION_ARB,
+			4,
+			WGL_CONTEXT_MINOR_VERSION_ARB,
+			2,
+			WGL_CONTEXT_FLAGS_ARB,
+			WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+			WGL_CONTEXT_PROFILE_MASK_ARB,
+			WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+			0
+		};
 
 		Kinc_Internal_windows[window].glContext =
-		    wglCreateContextAttribsARB(Kinc_Internal_windows[window].deviceContext, Kinc_Internal_windows[0].glContext, attributes);
+			wglCreateContextAttribsARB(Kinc_Internal_windows[window].deviceContext, Kinc_Internal_windows[0].glContext, attributes);
 		glCheckErrors();
 		wglMakeCurrent(NULL, NULL);
 		wglDeleteContext(tempGlContext);
@@ -108,10 +110,15 @@ void Kinc_Internal_initWindowsGLContext(int window, int depthBufferBits, int ste
 	if (window != 0) {
 		wglShareLists(Kinc_Internal_windows[0].glContext, Kinc_Internal_windows[window].glContext);
 		wglMakeCurrent(Kinc_Internal_windows[0].deviceContext, Kinc_Internal_windows[0].glContext);
-		kinc_g4_render_target_init(Kinc_Internal_windows[window].renderTarget, kinc_windows_manual_width(window), kinc_windows_manual_height(window),
-		                           depthBufferBits,
-		                            false, KINC_G4_RENDER_TARGET_FORMAT_32BIT, -1, 0);
-		if (!initialized) {
+		kinc_g4_render_target_init(
+			Kinc_Internal_windows[window].renderTarget,
+			kinc_windows_manual_width(window), 
+			kinc_windows_manual_height(window),
+			depthBufferBits,
+			false, KINC_G4_RENDER_TARGET_FORMAT_32BIT, -1, 0
+		);
+		if (!initialized) 
+		{
 			wglMakeCurrent(Kinc_Internal_windows[window].deviceContext, Kinc_Internal_windows[window].glContext);
 			kinc_g4_vertex_structure_t structure;
 			kinc_g4_vertex_structure_init(&structure);

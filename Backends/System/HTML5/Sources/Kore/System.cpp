@@ -3,17 +3,16 @@
 #ifdef KORE_OPENGL
 #include <GL/glfw.h>
 #endif
+#ifdef KORE_A2
 #include <kinc/audio2/audio.h>
+#endif
 #include <kinc/graphics4/graphics.h>
 #include <kinc/input/keyboard.h>
 #include <kinc/input/mouse.h>
-#include <kinc/log.h>
 #include <kinc/system.h>
 #include <kinc/window.h>
-#include <cstring>
 #include <emscripten/emscripten.h>
-#include <stdio.h>
-#include <stdlib.h>
+
 
 namespace {
 	int argc;
@@ -23,7 +22,9 @@ namespace {
 	void drawfunc() {
 		if (!initialized) return;
 		kinc_internal_update_callback();
+#ifdef KORE_A2
 		kinc_a2_update();
+#endif
 #ifdef KORE_OPENGL
 		glfwSwapBuffers();
 #endif

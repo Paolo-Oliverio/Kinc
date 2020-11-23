@@ -1,10 +1,10 @@
 #include "pch.h"
 
-#include <kinc/display.h>
-#include <kinc/graphics4/graphics.h>
+//#include <kinc/display.h>
+//#include <kinc/graphics4/graphics.h>
 #include <kinc/window.h>
 
-#include <string.h>
+//#include <string.h>
 
 int kinc_internal_window_width = 0;
 int kinc_internal_window_height = 0;
