@@ -1,37 +1,11 @@
-#include "pch.h"
-
-#ifdef KORE_OPENGL
-#include <GL/glfw.h>
-#endif
-#ifdef KORE_A2
-#include <kinc/audio2/audio.h>
-#endif
-#include <kinc/graphics4/graphics.h>
 #include <kinc/input/keyboard.h>
 #include <kinc/input/mouse.h>
-#include <kinc/system.h>
-#include <kinc/window.h>
+#include <kinc/input/surface.h>
 #include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 
-
-namespace {
-	int argc;
-	char** argv;
-	bool initialized = false;
-
-	void drawfunc() {
-		if (!initialized) return;
-		kinc_internal_update_callback();
-#ifdef KORE_A2
-		kinc_a2_update();
-#endif
-#ifdef KORE_OPENGL
-		glfwSwapBuffers();
-#endif
-	}
-
-#ifdef KORE_OPENGL
-	void onKeyPressed(int key, int action) {
+/*
+void onKeyPressed(int key, int action) {
 		if (action == GLFW_PRESS) {
 			switch (key) {
 			case 87:
@@ -109,8 +83,8 @@ namespace {
 	}
 
 	int mouseX = 0;
-	int mouseY = 0;
-
+	int mouseY = 0;*/
+/*
 	void onMouseClick(int button, int action) {
 		if (action == GLFW_PRESS) {
 			if (button == 0) {
@@ -135,97 +109,66 @@ namespace {
 		mouseY = y;
 		kinc_internal_mouse_trigger_move(0, x, y);
 	}
-#endif
+*/
+
+
+
+
+EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent *e, void *userData)
+{ 
+   // auto x = emscripten_get_device_pixel_ratio();
+    switch (eventType) {
+        case EMSCRIPTEN_EVENT_MOUSEDOWN:
+            kinc_internal_mouse_trigger_press(0, e->button, e->targetX, e->targetY);
+        break;
+        case EMSCRIPTEN_EVENT_MOUSEUP:
+            kinc_internal_mouse_trigger_release(0, e->button, e->targetX, e->targetY);
+        break;
+        case EMSCRIPTEN_EVENT_MOUSEMOVE:
+            kinc_internal_mouse_trigger_move(0, e->targetX, e->targetY);
+        break;
+        default:
+        break;
+    }
+    return 0;
 }
 
-using namespace Kore;
+/*
+EM_BOOL touch_callbackEM_BOOL (int eventType, const EmscriptenTouchEvent *touchEvent, void *userData);
+   // auto x = emscripten_get_device_pixel_ratio();
+    switch (eventType) {
+        case EMSCRIPTEN_EVENT_MOUSEDOWN:
+            kinc_internal_mouse_trigger_press(0, e->button, e->targetX, e->targetY);
+        break;
+        case EMSCRIPTEN_EVENT_MOUSEUP:
+            kinc_internal_mouse_trigger_release(0, e->button, e->targetX, e->targetY);
+        break;
+        case EMSCRIPTEN_EVENT_MOUSEMOVE:
+            kinc_internal_mouse_trigger_move(0, e->targetX, e->targetY);
+        break;
+        default:
+        break;
+    }
+    return 0;
+}*/
 
-namespace {
-	int w, h;
+
+EM_BOOL wheel_callback(int eventType, const EmscriptenWheelEvent *e, void *userData)
+{
+    kinc_internal_mouse_trigger_scroll(0, e->deltaY * 0.01);
+    return 0;
 }
 
-extern int kinc_internal_window_width;
-extern int kinc_internal_window_height;
 
-int kinc_init(const char* name, int width, int height, kinc_window_options_t *win, kinc_framebuffer_options_t *frame) {
-	kinc_window_options_t defaultWin;
-	if (win == NULL) {
-		kinc_internal_init_window_options(&defaultWin);
-		win = &defaultWin;
-	}
-	kinc_framebuffer_options_t defaultFrame;
-	if (frame == NULL) {
-		kinc_internal_init_framebuffer_options(&defaultFrame);
-		frame = &defaultFrame;
-	}
-	win->width = width;
-	win->height = height;
-
-#ifdef KORE_OPENGL
-	glfwInit();
-	glfwOpenWindow(width,  height, 8, 8, 8, 0, 0, 0, GLFW_WINDOW);
-	glfwSetWindowTitle(name);
-	glfwSetKeyCallback(onKeyPressed);
-	glfwSetMousePosCallback(onMouseMove);
-	glfwSetMouseButtonCallback(onMouseClick);
-#endif
-	kinc_internal_window_width = width;
-	kinc_internal_window_height = height;
-	kinc_g4_init(0, frame->depth_bits, frame->stencil_bits, true);
-	return 0;
+void setup_mouse_callbacks()
+{
+    const char * c = "#canvas";
+    emscripten_set_mousedown_callback(c,    0, 1, mouse_callback);
+    emscripten_set_mouseup_callback(c,      0, 1, mouse_callback);
+    emscripten_set_mousemove_callback(c,    0, 1, mouse_callback);
+   // emscripten_set_touchstart_callback(c,   0, 1, touch_callback);
+   // emscripten_set_touchend_callback(c,     0, 1, touch_callback);
+   // emscripten_set_touchmove_callback(c,    0, 1, touch_callback);
+    emscripten_set_wheel_callback(c,        0, 1, wheel_callback);
 }
 
-bool kinc_internal_handle_messages() {
-	return true;
-}
-
-void kinc_set_keep_screen_on(bool on) {}
-
-double kinc_frequency(void) {
-	return 1000.0;
-}
-
-kinc_ticks_t kinc_timestamp(void) {
-#ifdef KORE_OPENGL
-	return (kinc_ticks_t)(glfwGetTime() * 1000.0);
-#else
-	return (kinc_ticks_t)(0.0);
-#endif
-}
-
-double kinc_time(void) {
-#ifdef KORE_OPENGL
-	return glfwGetTime();
-#else
-	return 0.0;
-#endif
-}
-
-extern int kickstart(int argc, char** argv);
-
-#ifdef KORE_WEBGPU
-extern "C" {
-	EMSCRIPTEN_KEEPALIVE void kinc_internal_webgpu_initialized() {
-		kickstart(argc, argv);
-		initialized = true;
-	}
-}
-#endif
-
-int main(int argc, char** argv) {
-	::argc = argc;
-	::argv = argv;
-#ifdef KORE_WEBGPU
-	char* code = "(async () => {\
-		const adapter = await navigator.gpu.requestAdapter();\
-		const device = await adapter.requestDevice();\
-		Module.preinitializedWebGPUDevice = device;\
-		_kinc_internal_webgpu_initialized();\
-	})();";
-	emscripten_run_script(code);
-#else
-	kickstart(argc, argv);
-	initialized = true;
-#endif
-	emscripten_set_main_loop(drawfunc, 0, 1);
-}
