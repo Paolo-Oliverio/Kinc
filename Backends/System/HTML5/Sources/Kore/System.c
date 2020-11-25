@@ -8,28 +8,21 @@
 #include <emscripten/emscripten.h>
 #include "Inputcallbacks.h"
 
-
-
 	//int argc;
 	//char** argv;
 bool initialized = false;
 
 EMSCRIPTEN_KEEPALIVE
-void drawfunc() {
+void js_loop() {
 	if (!initialized) return;
 	kinc_internal_update_callback();
 #ifdef KORE_A2
 	kinc_a2_update();
 #endif
-/*
-#ifdef KORE_OPENGL
-	glfwSwapBuffers();
-#endif
-*/
 }
 
-EM_JS(void, initWebGL, (int width, int height), {
-	initGL(width,height);
+EM_JS(void, js_init, (int width, int height), {
+	kjs_init(width,height);
 });
 
 extern int kinc_internal_window_width;
@@ -48,11 +41,10 @@ int kinc_init(const char* name, int width, int height, kinc_window_options_t *wi
 	}
 	win->width = width;
 	win->height = height;
-	initWebGL(width, height);
+	js_init(width, height);
 	kinc_internal_window_width = width;
 	kinc_internal_window_height = height;
 	kinc_g4_init(0, frame->depth_bits, frame->stencil_bits, true);
-	setup_mouse_callbacks();
 	return 0;
 }
 
@@ -77,13 +69,17 @@ kinc_ticks_t kinc_timestamp(void) {
 extern int kickstart(int argc, char** argv);
 
 #ifdef KORE_WEBGPU
-extern "C" {
-	EMSCRIPTEN_KEEPALIVE void kinc_internal_webgpu_initialized() {
-		kickstart(argc, argv);
-		initialized = true;
-	}
+EMSCRIPTEN_KEEPALIVE void kinc_internal_webgpu_initialized() {
+	kickstart(argc, argv);
+	initialized = true;
 }
 #endif
+
+#include <stdio.h>
+
+EMSCRIPTEN_KEEPALIVE
+void js_event_resize(int w,int h){
+}
 
 int main(int argc, char** argv) {
 #ifdef KORE_WEBGPU
@@ -98,6 +94,5 @@ int main(int argc, char** argv) {
 	kickstart(argc, argv);
 	initialized = true;
 #endif
-	EM_ASM(startloop(););
-
+	EM_ASM(kjs_start_loop(););
 }
