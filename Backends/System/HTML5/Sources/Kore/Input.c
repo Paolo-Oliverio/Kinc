@@ -1,12 +1,19 @@
-#include <kinc/input/keyboard.h>
+#include "pch.h"
 #include <kinc/input/mouse.h>
+#include <kinc/input/keyboard.h>
 #include <kinc/input/surface.h>
+#include <kinc/input/gamepad.h>
 #include <emscripten/emscripten.h>
-#include <emscripten/html5.h>
 
+EM_JS(bool, js_gamepad_connected, (int id), {
+	return kjs_gamepad_connected(id);
+});
 
+EM_JS(const char *, js_gamepad_product_name, (int gamepad), {
+	return kjs_gamepad_product_name(gamepad);
+});
 
-
+//Mouse Api
 EMSCRIPTEN_KEEPALIVE
 void js_event_mouse(int event, int button, int x, int y)
 {
@@ -29,7 +36,17 @@ void js_event_wheel(int delta)
 {
 	kinc_internal_mouse_trigger_scroll(0, delta);
 }
+void kinc_internal_mouse_lock(int window) {}
+void kinc_internal_mouse_unlock(int window) {}
+bool kinc_mouse_can_lock(int window) {
+	return false;
+}
+void kinc_mouse_show() {}
+void kinc_mouse_hide() {}
+void kinc_mouse_set_position(int window, int x, int y) {}
+void kinc_mouse_get_position(int window, int *x, int *y) {}
 
+//Keyboard Api
 EMSCRIPTEN_KEEPALIVE
 void js_event_key(int event,int key)
 {
@@ -40,7 +57,7 @@ void js_event_key(int event,int key)
 	}
 }
 
-
+//Touch Api
 EMSCRIPTEN_KEEPALIVE
 void js_event_touch(int event, int index, int x, int y)
 {
@@ -65,4 +82,27 @@ void js_event_touch(int event, int index, int x, int y)
 			}
 			break;
 	}
+}
+
+//Gamepad Api.
+EMSCRIPTEN_KEEPALIVE
+void js_event_gamepad_axis (int pad, int axis, float value){
+	kinc_internal_gamepad_trigger_axis(pad, axis, value);
+}
+EMSCRIPTEN_KEEPALIVE
+void js_event_gamepad_button (int pad, int button, float value){
+	kinc_internal_gamepad_trigger_button(pad, button, value);
+}
+
+
+bool kinc_gamepad_connected(int gamepad){
+	return js_gamepad_connected(gamepad);
+}
+//TODO check if they can be implemented in js directly.
+const char *kinc_gamepad_vendor(int gamepad){
+	return "";
+}
+
+const char *kinc_gamepad_product_name(int gamepad){
+	return js_gamepad_product_name(gamepad);
 }

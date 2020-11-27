@@ -6,7 +6,6 @@
 #include <kinc/system.h>
 #include <kinc/window.h>
 #include <emscripten/emscripten.h>
-#include "Inputcallbacks.h"
 
 	//int argc;
 	//char** argv;
@@ -42,10 +41,14 @@ int kinc_init(const char* name, int width, int height, kinc_window_options_t *wi
 	win->width = width;
 	win->height = height;
 	js_init(width, height);
+#ifdef KORE_OPENGL
+	EM_ASM(kjs_init_gfx_api(););
+#endif
 	kinc_internal_window_width = width;
 	kinc_internal_window_height = height;
 	kinc_g4_init(0, frame->depth_bits, frame->stencil_bits, true);
 	return 0;
+
 }
 
 bool kinc_internal_handle_messages() {
