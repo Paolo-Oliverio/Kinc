@@ -1,10 +1,6 @@
 #include "pch.h"
-
-//#include <kinc/display.h>
-//#include <kinc/graphics4/graphics.h>
 #include <kinc/window.h>
-
-//#include <string.h>
+#include <emscripten/emscripten.h>
 
 int kinc_internal_window_width = 0;
 int kinc_internal_window_height = 0;
@@ -58,10 +54,10 @@ void kinc_window_change_mode(int window_index, kinc_window_mode_t mode) {
         kinc_internal_window_mode = mode;
 	}
 }
-
+/*
 int kinc_primary_display(void) {
 	return 0;
-}
+}*/
 
 void kinc_window_destroy(int window_index) {
 
@@ -72,7 +68,11 @@ void kinc_window_show(int window_index) {}
 void kinc_window_hide(int window_index) {}
 
 //TODO: change browser title.
-void kinc_window_set_title(int window_index, const char *title) {}
+void kinc_window_set_title(int window_index, const char *title) {
+	if(window_index == 0) {
+		emscripten_set_window_title(title);
+	}
+}
 
 int kinc_window_create(kinc_window_options_t *win, kinc_framebuffer_options_t *frame) {
 	return 0;
